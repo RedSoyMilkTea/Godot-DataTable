@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://cghhpfyixmwoh"]
+
+[ext_resource type="Script" uid="uid://cyii7ut27t3f2" path="res://addons/data_table/data_table_editor.gd" id="1_kyurx"]
+
+[node name="MarginContainer" type="MarginContainer" unique_id=876702468]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+script = ExtResource("1_kyurx")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1855985612]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=808077178]
+layout_mode = 2
+
+[node name="ButtonAddRow" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=411897614]
+layout_mode = 2
+
+[node name="HBoxContainerHeads" type="HBoxContainer" parent="VBoxContainer" unique_id=1811371064]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer" unique_id=215381640]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainerDataList" type="VBoxContainer" parent="VBoxContainer/ScrollContainer" unique_id=2134974401]
+layout_mode = 2
+size_flags_horizontal = 3
