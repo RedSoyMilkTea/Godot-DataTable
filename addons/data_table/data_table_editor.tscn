@@ -16,23 +16,82 @@ theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 script = ExtResource("1_kyurx")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1855985612]
+[node name="VBoxContainerTableEditor" type="VBoxContainer" parent="." unique_id=1855985612]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=808077178]
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainerTableEditor" unique_id=808077178]
 layout_mode = 2
 
-[node name="ButtonAddRow" type="Button" parent="VBoxContainer/HBoxContainer" unique_id=411897614]
+[node name="ButtonAddRow" type="Button" parent="VBoxContainerTableEditor/HBoxContainer" unique_id=411897614]
+layout_mode = 2
+text = "Row"
+
+[node name="ButtonImport" type="Button" parent="VBoxContainerTableEditor/HBoxContainer" unique_id=1455835557]
+layout_mode = 2
+text = "Import"
+
+[node name="ButtonExport" type="Button" parent="VBoxContainerTableEditor/HBoxContainer" unique_id=716031341]
+layout_mode = 2
+text = "Export"
+
+[node name="LabelRowStructFile" type="Label" parent="VBoxContainerTableEditor/HBoxContainer" unique_id=1019084074]
+layout_mode = 2
+size_flags_horizontal = 10
+
+[node name="LabelTableFile" type="Label" parent="VBoxContainerTableEditor/HBoxContainer" unique_id=66007788]
 layout_mode = 2
 
-[node name="HBoxContainerHeads" type="HBoxContainer" parent="VBoxContainer" unique_id=1811371064]
+[node name="HBoxContainerHeads" type="HBoxContainer" parent="VBoxContainerTableEditor" unique_id=1811371064]
 layout_mode = 2
 
-[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer" unique_id=215381640]
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainerTableEditor" unique_id=215381640]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VBoxContainerDataList" type="VBoxContainer" parent="VBoxContainer/ScrollContainer" unique_id=2134974401]
+[node name="VBoxContainerDataList" type="VBoxContainer" parent="VBoxContainerTableEditor/ScrollContainer" unique_id=2134974401]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="VBoxContainerRowSelector" type="VBoxContainer" parent="." unique_id=1257307571]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainerRowSelector" unique_id=867284746]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainerRowSelector/HBoxContainer" unique_id=2025963783]
+layout_mode = 2
+text = "Row Struct"
+
+[node name="OptionButtonRowSelector" type="OptionButton" parent="VBoxContainerRowSelector/HBoxContainer" unique_id=1014800971]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ButtonRowSelector" type="Button" parent="VBoxContainerRowSelector/HBoxContainer" unique_id=420915797]
+layout_mode = 2
+text = "OK"
+
+[node name="FileDialog" type="FileDialog" parent="." unique_id=526897309]
+
+[node name="PopupMenu" type="PopupMenu" parent="." unique_id=53043736]
+item_count = 9
+item_0/text = "Copy"
+item_0/id = 11
+item_1/text = "Paste"
+item_1/id = 12
+item_2/text = "Remove"
+item_2/id = 13
+item_3/id = 20
+item_3/separator = true
+item_4/text = "Move Up"
+item_4/id = 21
+item_5/text = "Move Down"
+item_5/id = 22
+item_6/id = 30
+item_6/separator = true
+item_7/text = "Insert Above"
+item_7/id = 31
+item_8/text = "Insert Below"
+item_8/id = 32
