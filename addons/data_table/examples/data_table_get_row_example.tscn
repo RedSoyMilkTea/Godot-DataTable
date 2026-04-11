@@ -2,19 +2,20 @@
 
 [ext_resource type="Script" uid="uid://deaeoketwhc7p" path="res://addons/data_table/examples/data_table_get_row_example.gd" id="1_g1rnr"]
 
-[node name="DataTableGetRowExample" type="Control" unique_id=266812070]
-layout_mode = 3
+[node name="DataTableGetRowExample" type="MarginContainer" unique_id=548281446]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
 script = ExtResource("1_g1rnr")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1302784270]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=1492816752]
 layout_mode = 2

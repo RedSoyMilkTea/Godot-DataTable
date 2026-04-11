@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_w3mfy")
-row_struct = Object(RefCounted,"script":Resource("res://addons/data_table/examples/dtr_character.gd"),"level":0,"strength":0,"health_max":0.0,"can_fly":false,"remark":"","row_name":"")
+row_struct = Object(RefCounted,"script":Resource("res://addons/data_table/examples/dtr_character.gd"),"health_max":0.0)
 
-data_list = [["warrior-1", 1.0, 10.0, 100.0, false, "male warrior", "Warrior"], ["warrior-2", 1.0, 8.0, 120.0, false, "female warrior", "Warrior 2"], ["warrior-boss", 5.0, 25.0, 240.0, 300.0, "boss", "Warrior boss"]]
+data_list = [["warrior-1", 1.0, 100.0, 100.0, true, "male warrior", Vector2(11, 22), Vector3(0.3999939, 0.5, 0.6000061)], ["warrior-2", 1.0, 100.0, 120.0, false, "female warrior", Vector2(33, 44), Vector3(1.1000061, 1.199997, 1.300003)], ["warrior-boss", 5.0, 200.0, 425.0, true, "boss", Vector2(55, 6), Vector3(2, 2.100006, 2.199997)]]
 metadata/_custom_type_script = "uid://hajoi6yexh8r"

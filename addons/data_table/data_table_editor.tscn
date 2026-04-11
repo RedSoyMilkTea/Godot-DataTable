@@ -45,6 +45,9 @@ layout_mode = 2
 [node name="HBoxContainerHeads" type="HBoxContainer" parent="VBoxContainerTableEditor" unique_id=1811371064]
 layout_mode = 2
 
+[node name="ControlHeads" type="Control" parent="VBoxContainerTableEditor" unique_id=1589685267]
+layout_mode = 2
+
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainerTableEditor" unique_id=215381640]
 layout_mode = 2
 size_flags_vertical = 3

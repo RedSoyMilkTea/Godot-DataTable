@@ -9,6 +9,7 @@ extends MarginContainer
 @onready var label_table_file: Label = $VBoxContainerTableEditor/HBoxContainer/LabelTableFile
 
 @onready var h_box_container_heads: HBoxContainer = $VBoxContainerTableEditor/HBoxContainerHeads
+@onready var control_heads: Control = $VBoxContainerTableEditor/ControlHeads
 @onready var v_box_container_data_list: VBoxContainer = $VBoxContainerTableEditor/ScrollContainer/VBoxContainerDataList
 
 @onready var v_box_container_row_selector: VBoxContainer = $VBoxContainerRowSelector
@@ -24,7 +25,9 @@ const supported_types = {
 	Variant.Type.TYPE_BOOL: false,
 	Variant.Type.TYPE_INT: 0,
 	Variant.Type.TYPE_FLOAT: 0.0,
-	Variant.Type.TYPE_STRING: ""
+	Variant.Type.TYPE_STRING: "",
+	Variant.Type.TYPE_VECTOR2: Vector2.ZERO,
+	Variant.Type.TYPE_VECTOR3: Vector3.ZERO
 }
 
 func _ready() -> void:
@@ -49,6 +52,9 @@ func _ready() -> void:
 		file_dialog.popup_centered()
 	)
 
+	h_box_container_heads.visible = false
+	control_heads.custom_minimum_size.y = 36
+
 	var scroll_container: ScrollContainer = v_box_container_data_list.get_parent()
 	scroll_container.add_theme_constant_override("scrollbar_h_separation", -scroll_container.get_v_scroll_bar().size.x)
 
@@ -63,11 +69,29 @@ func _ready() -> void:
 
 	file_dialog.file_selected.connect(func(selected_path):
 		if file_dialog.file_mode == FileDialog.FileMode.FILE_MODE_OPEN_FILE:
-			data_table.data_list = JSON.parse_string(FileAccess.get_file_as_string(selected_path))
+			var fields = get_fields()
+			var imported_data = JSON.parse_string(FileAccess.get_file_as_string(selected_path))
+			for row_idx in imported_data.size():
+				for col_idx in fields.size():
+					var value: Variant = imported_data[row_idx][col_idx]
+					if fields[col_idx]["type"] == Variant.Type.TYPE_VECTOR2:
+						imported_data[row_idx][col_idx] = Vector2(value.x, value.y)
+					elif fields[col_idx]["type"] == Variant.Type.TYPE_VECTOR3:
+						imported_data[row_idx][col_idx] = Vector3(value.x, value.y, value.z)
+			data_table.data_list = imported_data
 			load_data()
 			save_data()
 		elif file_dialog.file_mode == FileDialog.FileMode.FILE_MODE_SAVE_FILE:
-			FileAccess.open(selected_path, FileAccess.WRITE).store_string(JSON.stringify(data_table.data_list, "  "))
+			var fields = get_fields()
+			var export_data := data_table.data_list.duplicate_deep()
+			for row_idx in export_data.size():
+				for col_idx in fields.size():
+					var value: Variant = export_data[row_idx][col_idx]
+					if fields[col_idx]["type"] == Variant.Type.TYPE_VECTOR2:
+						export_data[row_idx][col_idx] = {"x": value.x, "y": value.y}
+					elif fields[col_idx]["type"] == Variant.Type.TYPE_VECTOR3:
+						export_data[row_idx][col_idx] = {"x": value.x, "y": value.y, "z": value.z}
+			FileAccess.open(selected_path, FileAccess.WRITE).store_string(JSON.stringify(export_data, "  "))
 	)
 
 	popup_menu.set_item_icon(0, get_theme_icon("ActionCopy", "EditorIcons"))
@@ -112,6 +136,10 @@ func _ready() -> void:
 			load_data()
 	)
 
+func _physics_process(delta: float) -> void:
+	if data_table != null && data_table.row_struct != null:
+		update_visual.call_deferred()
+
 func handle(_data_table: DataTable):
 	data_table = _data_table
 	visibility_changed.emit()
@@ -147,40 +175,48 @@ func update_toolbar():
 	label_row_struct_file.text = data_table.row_struct.get_script().resource_path.trim_prefix("res:/") if data_table && data_table.row_struct else "No Row Struct Selected"
 
 func update_heads():
-	h_box_container_heads.get_children().map(func(i): if i.get_index() > 1: i.queue_free())
+	control_heads.get_children().map(func(i):
+		if i.get_index() > 1:
+			control_heads.remove_child(i)
+			i.queue_free()
+	)
 	
 	# placeholder for index column
-	if h_box_container_heads.get_child_count() == 0:
+	if control_heads.get_child_count() == 0:
 		var label_index: Label = Label.new()
 		label_index.text = "#"
 		label_index.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_RIGHT
-		h_box_container_heads.add_child(label_index)
+		control_heads.add_child(label_index)
 		
 		# placeholder for remove button column
 		var button_placeholder: Button = Button.new()
 		button_placeholder.icon = get_theme_icon("Remove", "EditorIcons")
 		button_placeholder.disabled = true
 		button_placeholder.modulate = Color.TRANSPARENT
-		h_box_container_heads.add_child(button_placeholder)
+		control_heads.add_child(button_placeholder)
 	
 	# heads
 	var fields: Array = get_fields()
 	for field in fields:
 		if field.type not in supported_types.keys():
 			continue
-		var label_head := Label.new()
+		var label := Label.new()
 		var head_text = field.hint_string if field.hint_string != "" else field.name
 		var arr := Array(head_text.to_snake_case().split("_"))
-		label_head.text = " ".join(arr.map(func(s): return s.capitalize()))
-		label_head.custom_minimum_size.y = 36
-		label_head.vertical_alignment = VerticalAlignment.VERTICAL_ALIGNMENT_CENTER
-		label_head.size_flags_horizontal = Control.SizeFlags.SIZE_EXPAND_FILL
-		label_head.add_theme_font_override("font", get_theme_font("bold", "EditorFonts"))
-		label_head.add_theme_stylebox_override("normal", style_box_head)
-		h_box_container_heads.add_child(label_head)
+		label.text = " ".join(arr.map(func(s): return s.capitalize()))
+		label.clip_text = true
+		label.custom_minimum_size.y = 36
+		label.vertical_alignment = VerticalAlignment.VERTICAL_ALIGNMENT_CENTER
+		label.size_flags_horizontal = Control.SizeFlags.SIZE_EXPAND_FILL
+		label.add_theme_font_override("font", get_theme_font("bold", "EditorFonts"))
+		label.add_theme_stylebox_override("normal", style_box_head)
+		control_heads.add_child(label)
 
 func update_data_list():
-	v_box_container_data_list.get_children().map(func(i): i.queue_free())
+	v_box_container_data_list.get_children().map(func(i):
+		v_box_container_data_list.remove_child(i)
+		i.queue_free()
+	)
 
 	var fields: Array = get_fields()
 	var data_list: Array = data_table.data_list
@@ -228,39 +264,65 @@ func update_data_list():
 			var editor: Control
 			match type:
 				Variant.Type.TYPE_BOOL:
-					editor = CheckBox.new() as CheckBox
-					editor.button_pressed = bool(value)
-					editor.mouse_filter = Control.MOUSE_FILTER_PASS
+					if value is not bool: value = false
+					var check_box := CheckBox.new()
+					check_box.mouse_filter = Control.MOUSE_FILTER_PASS
+					check_box.button_pressed = value
+					check_box.size_flags_horizontal = Control.SizeFlags.SIZE_EXPAND | Control.SizeFlags.SIZE_SHRINK_CENTER
+					editor = HBoxContainer.new()
+					editor.custom_minimum_size.x = 60
+					editor.add_child(check_box)
 				Variant.Type.TYPE_INT:
-					editor = SpinBox.new() as SpinBox
-					editor.select_all_on_focus = true
-					editor.allow_greater = true
-					editor.allow_lesser = true
-					editor.value = int(value)
+					if value is not int && value is not float: value = 0
+					editor = create_spin_box(int(value))
 				Variant.Type.TYPE_FLOAT:
-					editor = SpinBox.new() as SpinBox
-					editor.select_all_on_focus = true
-					editor.step = 0.0001
-					editor.allow_greater = true
-					editor.allow_lesser = true
-					editor.value = float(value)
+					if value is not float: value = 0.0
+					editor = create_spin_box(0.0001)
+					editor.value = value
 				Variant.Type.TYPE_STRING:
+					if value is not String: value = ""
 					editor = LineEdit.new() as LineEdit
 					editor.select_all_on_focus = true
 					editor.placeholder_text = "empty"
-					editor.text = str(value)
+					editor.text = value
+				Variant.Type.TYPE_VECTOR2:
+					if value is not Vector2: value = Vector2.ZERO
+					editor = HBoxContainer.new()
+					editor.add_child(create_spin_box(value.x, 0.0001))
+					editor.add_child(create_spin_box(value.y, 0.0001))
+				Variant.Type.TYPE_VECTOR3:
+					if value is not Vector3: value = Vector3.ZERO
+					editor = HBoxContainer.new()
+					editor.add_child(create_spin_box(value.x, 0.0001))
+					editor.add_child(create_spin_box(value.y, 0.0001))
+					editor.add_child(create_spin_box(value.z, 0.0001))
 				_:
 					continue
 			
-			if editor is Range:
+			if type == Variant.Type.TYPE_INT || type == Variant.Type.TYPE_FLOAT:
 				editor.value_changed.connect(func(value): update_col_value(row_idx, col_idx, value))
-			elif editor is LineEdit:
+			elif type == Variant.Type.TYPE_STRING:
 				editor.text_changed.connect(func(value): update_col_value(row_idx, col_idx, value))
-			elif editor is BaseButton:
-				editor.pressed.connect(func(): update_col_value(row_idx, col_idx, editor.button_pressed))
-			
+			elif type == Variant.Type.TYPE_BOOL:
+				var check_box: CheckBox = editor.get_child(0)
+				check_box.pressed.connect(func(): update_col_value(row_idx, col_idx, check_box.button_pressed))
+			elif type == Variant.Type.TYPE_VECTOR2:
+				var editor_x: SpinBox = editor.get_child(0)
+				var editor_y: SpinBox = editor.get_child(1)
+				editor_x.value_changed.connect(func(value): update_col_value(row_idx, col_idx, Vector2(editor_x.value, editor_y.value)))
+				editor_y.value_changed.connect(func(value): update_col_value(row_idx, col_idx, Vector2(editor_x.value, editor_y.value)))
+			elif type == Variant.Type.TYPE_VECTOR3:
+				var editor_x: SpinBox = editor.get_child(0)
+				var editor_y: SpinBox = editor.get_child(1)
+				var editor_z: SpinBox = editor.get_child(2)
+				editor_x.value_changed.connect(func(value): update_col_value(row_idx, col_idx, Vector3(editor_x.value, editor_y.value, editor_z.value)))
+				editor_y.value_changed.connect(func(value): update_col_value(row_idx, col_idx, Vector3(editor_x.value, editor_y.value, editor_z.value)))
+				editor_z.value_changed.connect(func(value): update_col_value(row_idx, col_idx, Vector3(editor_x.value, editor_y.value, editor_z.value)))
+
 			# editor.size = h_box_container_heads.get_child(col_idx).size
-			editor.size_flags_horizontal = Control.SizeFlags.SIZE_EXPAND_FILL
+			if type != Variant.Type.TYPE_BOOL:
+				editor.size_flags_horizontal = Control.SizeFlags.SIZE_EXPAND_FILL
+			
 			hbox.add_child(editor)
 
 		hbox.get_children().map(func(i):
@@ -272,16 +334,23 @@ func update_data_list():
 	
 func update_visual():
 	var data_list: Array = data_table.data_list
-	h_box_container_heads.get_child(0).set_custom_minimum_size(Vector2(str(data_list.size()).length() * 22, 0))
+	# h_box_container_heads.get_child(0).set_custom_minimum_size(Vector2(str(data_list.size()).length() * 22, 0))
 	
-	get_tree().process_frame.connect(
-		(
-		func():
+	var f := func():
 		var scroll_container: ScrollContainer = v_box_container_data_list.get_parent()
 		scroll_container.scroll_vertical = scroll_container.get_v_scroll_bar().max_value
-		)
+		
+		if v_box_container_data_list.get_child_count() > 0:
+			var width_array: Array = v_box_container_data_list.get_child(0).get_children().map(func(i): return i.size.x)
+			var pos_x = 0
+			for i in control_heads.get_children():
+				i.position.x = pos_x
+				i.size.x = width_array[i.get_index()]
+				pos_x += i.size.x + h_box_container_heads.get_theme_constant("separation")
 		# v_box_container_data_list.get_parent().get_v_scroll_bar().set_value.bind(v_box_container_data_list.size.y),
-		, CONNECT_ONE_SHOT)
+
+	f.call_deferred()
+	# get_tree().process_frame.connect(f, CONNECT_ONE_SHOT)
 
 func get_fields() -> Array:
 	var fields = data_table.row_struct.get_script().get_script_property_list().filter(func(p):
@@ -293,18 +362,8 @@ func get_fields() -> Array:
 func add_row(new_row_idx := -1):
 	var new_row = []
 	get_fields().map(func(field):
-		match field["type"]:
-			Variant.Type.TYPE_BOOL:
-				new_row.push_back(false)
-			Variant.Type.TYPE_INT:
-				new_row.push_back(0)
-			Variant.Type.TYPE_FLOAT:
-				new_row.push_back(0.0)
-			Variant.Type.TYPE_STRING:
-				var value = create_new_row_name() if field.name == "row_name" else ""
-				new_row.push_back(value)
-			_:
-				new_row.push_back("")
+		if field["type"] in supported_types.keys():
+			new_row.push_back(supported_types[field["type"]])
 	)
 	if new_row_idx == -1:
 		data_table.data_list.push_back(new_row)
@@ -317,6 +376,10 @@ func remove_row(row_idx):
 	save_data()
 
 func update_col_value(row_idx: int, col_idx: int, value: Variant):
+	while data_table.data_list.size() <= row_idx:
+		data_table.data_list.push_back([])
+	while data_table.data_list[row_idx].size() <= col_idx:
+		data_table.data_list[row_idx].push_back(null)
 	data_table.data_list[row_idx][col_idx] = value
 	save_data()
 
@@ -349,6 +412,18 @@ func create_new_row_name():
 			idx += 1
 		else:
 			return new_row_name
+
+func create_spin_box(value: Variant, step: float = 1):
+	var editor := SpinBox.new()
+	editor.custom_arrow_step = max(step, 0.1)
+	editor.select_all_on_focus = true
+	editor.max_value = pow(2, 36)
+	editor.min_value = - pow(2, 36)
+	editor.step = step
+	editor.allow_greater = true
+	editor.allow_lesser = true
+	editor.value = value
+	return editor
 
 func get_row_struct_resources(path := "") -> Array:
 	var scripts = []
