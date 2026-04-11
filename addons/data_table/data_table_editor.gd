@@ -45,7 +45,7 @@ func _ready() -> void:
 	button_export.pressed.connect(func():
 		file_dialog.file_mode = FileDialog.FileMode.FILE_MODE_SAVE_FILE
 		file_dialog.filters = PackedStringArray(["*.json ; JSON Files"])
-		file_dialog.current_file = data_table.resource_path.get_basename().trim_prefix("res://") + ".json"
+		file_dialog.current_file = data_table.resource_path.get_file().get_basename() + ".json"
 		file_dialog.popup_centered()
 	)
 

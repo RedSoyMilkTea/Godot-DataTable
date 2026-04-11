@@ -3,7 +3,7 @@ extends EditorScript
 
 func _run() -> void:
 	#reload_plugin()
-	var data_table: DataTable = load("res://dt_character.tres")
+	var data_table: DataTable = load("res://addons/data_table/examples/dt_character.tres")
 	prints(data_table.get_data("warrior-boss"))
 	
 func reload_plugin() -> void:
