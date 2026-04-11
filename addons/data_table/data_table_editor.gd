@@ -57,6 +57,12 @@ func _ready() -> void:
 
 	var scroll_container: ScrollContainer = v_box_container_data_list.get_parent()
 	scroll_container.add_theme_constant_override("scrollbar_h_separation", -scroll_container.get_v_scroll_bar().size.x)
+	v_box_container_data_list.resized.connect(func():
+		await get_tree().create_timer(0.01).timeout
+		if v_box_container_data_list.get_meta("height", 0) < v_box_container_data_list.size.y:
+			v_box_container_data_list.set_meta("height", v_box_container_data_list.size.y)
+			scroll_container.scroll_vertical = scroll_container.get_v_scroll_bar().max_value
+	)
 
 	button_row_selector.pressed.connect(func():
 		if data_table == null:
@@ -333,21 +339,22 @@ func update_data_list():
 		v_box_container_data_list.add_child(hbox)
 	
 func update_visual():
-	var data_list: Array = data_table.data_list
-	# h_box_container_heads.get_child(0).set_custom_minimum_size(Vector2(str(data_list.size()).length() * 22, 0))
-	
 	var f := func():
-		var scroll_container: ScrollContainer = v_box_container_data_list.get_parent()
-		scroll_container.scroll_vertical = scroll_container.get_v_scroll_bar().max_value
-		
+		var width_array: Array
 		if v_box_container_data_list.get_child_count() > 0:
-			var width_array: Array = v_box_container_data_list.get_child(0).get_children().map(func(i): return i.size.x)
-			var pos_x = 0
-			for i in control_heads.get_children():
-				i.position.x = pos_x
+			width_array = v_box_container_data_list.get_child(0).get_children().map(func(i): return i.size.x)
+		var pos_x = 0
+		var last_control: Control
+		for i in control_heads.get_children():
+			if i is Label:
+				i.clip_text = width_array.size() > i.get_index()
+			i.position.x = pos_x
+			if width_array.size() > i.get_index():
 				i.size.x = width_array[i.get_index()]
-				pos_x += i.size.x + h_box_container_heads.get_theme_constant("separation")
-		# v_box_container_data_list.get_parent().get_v_scroll_bar().set_value.bind(v_box_container_data_list.size.y),
+			elif last_control:
+				i.size.x = last_control.size.x
+			pos_x += i.size.x + h_box_container_heads.get_theme_constant("separation")
+			last_control = i
 
 	f.call_deferred()
 	# get_tree().process_frame.connect(f, CONNECT_ONE_SHOT)
@@ -360,7 +367,7 @@ func get_fields() -> Array:
 	return fields
 
 func add_row(new_row_idx := -1):
-	var new_row = []
+	var new_row = [create_new_row_name()]
 	get_fields().map(func(field):
 		if field["type"] in supported_types.keys():
 			new_row.push_back(supported_types[field["type"]])
