@@ -8,9 +8,7 @@ extends MarginContainer
 @onready var label_row_struct_file: Label = $VBoxContainerTableEditor/HBoxContainer/LabelRowStructFile
 @onready var label_table_file: Label = $VBoxContainerTableEditor/HBoxContainer/LabelTableFile
 
-@onready var h_box_container_heads: HBoxContainer = $VBoxContainerTableEditor/HBoxContainerHeads
-@onready var control_heads: Control = $VBoxContainerTableEditor/ControlHeads
-@onready var v_box_container_data_list: VBoxContainer = $VBoxContainerTableEditor/ScrollContainer/VBoxContainerDataList
+@onready var h_box_container_columns: HBoxContainer = $VBoxContainerTableEditor/ScrollContainer/HBoxContainerColumns
 
 @onready var v_box_container_row_selector: VBoxContainer = $VBoxContainerRowSelector
 @onready var option_button_row_selector: OptionButton = $VBoxContainerRowSelector/HBoxContainer/OptionButtonRowSelector
@@ -52,17 +50,11 @@ func _ready() -> void:
 		file_dialog.popup_centered()
 	)
 
-	h_box_container_heads.visible = false
-	control_heads.custom_minimum_size.y = 36
+	# h_box_container_heads.visible = false
+	# control_heads.custom_minimum_size.y = 36
 
-	var scroll_container: ScrollContainer = v_box_container_data_list.get_parent()
+	var scroll_container: ScrollContainer = h_box_container_columns.get_parent()
 	scroll_container.add_theme_constant_override("scrollbar_h_separation", -scroll_container.get_v_scroll_bar().size.x)
-	v_box_container_data_list.resized.connect(func():
-		await get_tree().create_timer(0.01).timeout
-		if v_box_container_data_list.get_meta("height", 0) < v_box_container_data_list.size.y:
-			v_box_container_data_list.set_meta("height", v_box_container_data_list.size.y)
-			scroll_container.scroll_vertical = scroll_container.get_v_scroll_bar().max_value
-	)
 
 	button_row_selector.pressed.connect(func():
 		if data_table == null:
@@ -142,10 +134,6 @@ func _ready() -> void:
 			load_data()
 	)
 
-func _physics_process(delta: float) -> void:
-	if data_table != null && data_table.row_struct != null:
-		update_visual.call_deferred()
-
 func handle(_data_table: DataTable):
 	data_table = _data_table
 	visibility_changed.emit()
@@ -163,7 +151,6 @@ func load_data():
 	update_toolbar()
 	update_heads()
 	update_data_list()
-	update_visual()
 
 func update_row_selector():
 	var row_struct_resources: Array = get_row_struct_resources()
@@ -181,25 +168,31 @@ func update_toolbar():
 	label_row_struct_file.text = data_table.row_struct.get_script().resource_path.trim_prefix("res:/") if data_table && data_table.row_struct else "No Row Struct Selected"
 
 func update_heads():
-	control_heads.get_children().map(func(i):
+	h_box_container_columns.get_children().map(func(i):
 		if i.get_index() > 1:
-			control_heads.remove_child(i)
+			h_box_container_columns.remove_child(i)
 			i.queue_free()
 	)
 	
 	# placeholder for index column
-	if control_heads.get_child_count() == 0:
+	if h_box_container_columns.get_child_count() == 0:
 		var label_index: Label = Label.new()
+		label_index.custom_minimum_size.y = 36
 		label_index.text = "#"
 		label_index.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_RIGHT
-		control_heads.add_child(label_index)
+		var vbox := VBoxContainer.new()
+		vbox.add_child(label_index)
+		h_box_container_columns.add_child(vbox)
 		
 		# placeholder for remove button column
 		var button_placeholder: Button = Button.new()
+		button_placeholder.custom_minimum_size.y = 36
 		button_placeholder.icon = get_theme_icon("Remove", "EditorIcons")
 		button_placeholder.disabled = true
 		button_placeholder.modulate = Color.TRANSPARENT
-		control_heads.add_child(button_placeholder)
+		var vbox2 := VBoxContainer.new()
+		vbox2.add_child(button_placeholder)
+		h_box_container_columns.add_child(vbox2)
 	
 	# heads
 	var fields: Array = get_fields()
@@ -210,26 +203,40 @@ func update_heads():
 		var head_text = field.hint_string if field.hint_string != "" else field.name
 		var arr := Array(head_text.to_snake_case().split("_"))
 		label.text = " ".join(arr.map(func(s): return s.capitalize()))
-		label.clip_text = true
+		# label.clip_text = true
 		label.custom_minimum_size.y = 36
 		label.vertical_alignment = VerticalAlignment.VERTICAL_ALIGNMENT_CENTER
 		label.size_flags_horizontal = Control.SizeFlags.SIZE_EXPAND_FILL
 		label.add_theme_font_override("font", get_theme_font("bold", "EditorFonts"))
 		label.add_theme_stylebox_override("normal", style_box_head)
-		control_heads.add_child(label)
+		var vbox := VBoxContainer.new()
+		if field.type != Variant.Type.TYPE_BOOL:
+			vbox.size_flags_horizontal = Control.SizeFlags.SIZE_EXPAND_FILL
+		else:
+			vbox.custom_minimum_size.x = 60
+		vbox.add_child(label)
+		h_box_container_columns.add_child(vbox)
 
 func update_data_list():
-	v_box_container_data_list.get_children().map(func(i):
-		v_box_container_data_list.remove_child(i)
-		i.queue_free()
+	h_box_container_columns.get_children().map(func(i):
+		i.get_children().map(func(j):
+			if j.get_index() > 0:
+				i.remove_child(j)
+				j.queue_free()
+		)
 	)
 
 	var fields: Array = get_fields()
 	var data_list: Array = data_table.data_list
 	
 	for row_idx: int in data_list.size():
-		var hbox := HBoxContainer.new()
-		hbox.gui_input.connect(func(event):
+		# index column
+		var label_index: Label = Label.new()
+		label_index.text = str(row_idx + 1)
+		label_index.custom_minimum_size.y = 29
+		label_index.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_RIGHT
+		label_index.mouse_filter = Control.MOUSE_FILTER_PASS
+		label_index.gui_input.connect(func(event):
 			if event is InputEventMouseButton and event.button_index == MouseButton.MOUSE_BUTTON_RIGHT and event.pressed:
 				popup_menu.set_item_text(7, "Insert to Top" if row_idx == 0 else "Insert Above")
 				popup_menu.set_item_disabled(4, row_idx == 0)
@@ -239,23 +246,18 @@ func update_data_list():
 				popup_menu.popup(Rect2i(DisplayServer.mouse_get_position(), Vector2.ZERO))
 				# popup_menu.popup(Rect2i(event.get_global_position() + Vector2(get_window().position), Vector2.ZERO))
 		)
-		
-		# index column
-		var label_index: Label = Label.new()
-		label_index.text = str(row_idx + 1)
-		label_index.custom_minimum_size.x = str(data_list.size()).length() * 22
-		label_index.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_RIGHT
-		hbox.add_child(label_index)
+		h_box_container_columns.get_child(0).add_child(label_index)
 
 		# remove button
 		var button_remove_row: Button = Button.new()
+		button_remove_row.custom_minimum_size.y = 29
 		button_remove_row.icon = get_theme_icon("Remove", "EditorIcons")
 		button_remove_row.set("theme_override_colors/icon_normal_color", Color(1, 0.47, 0.42))
 		button_remove_row.pressed.connect(func():
 			remove_row(row_idx)
 			load_data()
 		)
-		hbox.add_child(button_remove_row)
+		h_box_container_columns.get_child(1).add_child(button_remove_row)
 
 		var data_item = data_list[row_idx]
 		for col_idx in fields.size():
@@ -276,7 +278,6 @@ func update_data_list():
 					check_box.button_pressed = value
 					check_box.size_flags_horizontal = Control.SizeFlags.SIZE_EXPAND | Control.SizeFlags.SIZE_SHRINK_CENTER
 					editor = HBoxContainer.new()
-					editor.custom_minimum_size.x = 60
 					editor.add_child(check_box)
 				Variant.Type.TYPE_INT:
 					if value is not int && value is not float: value = 0
@@ -305,6 +306,8 @@ func update_data_list():
 				_:
 					continue
 			
+			editor.custom_minimum_size.y = 29
+
 			if type == Variant.Type.TYPE_INT || type == Variant.Type.TYPE_FLOAT:
 				editor.value_changed.connect(func(value): update_col_value(row_idx, col_idx, value))
 			elif type == Variant.Type.TYPE_STRING:
@@ -325,39 +328,7 @@ func update_data_list():
 				editor_y.value_changed.connect(func(value): update_col_value(row_idx, col_idx, Vector3(editor_x.value, editor_y.value, editor_z.value)))
 				editor_z.value_changed.connect(func(value): update_col_value(row_idx, col_idx, Vector3(editor_x.value, editor_y.value, editor_z.value)))
 
-			# editor.size = h_box_container_heads.get_child(col_idx).size
-			if type != Variant.Type.TYPE_BOOL:
-				editor.size_flags_horizontal = Control.SizeFlags.SIZE_EXPAND_FILL
-			
-			hbox.add_child(editor)
-
-		hbox.get_children().map(func(i):
-			i.mouse_entered.connect(func(): hbox.modulate = Color(1, 1, 1, 0.8))
-			i.mouse_exited.connect(func(): hbox.modulate = Color(1, 1, 1, 1))
-		)
-
-		v_box_container_data_list.add_child(hbox)
-	
-func update_visual():
-	var f := func():
-		var width_array: Array
-		if v_box_container_data_list.get_child_count() > 0:
-			width_array = v_box_container_data_list.get_child(0).get_children().map(func(i): return i.size.x)
-		var pos_x = 0
-		var last_control: Control
-		for i in control_heads.get_children():
-			if i is Label:
-				i.clip_text = width_array.size() > i.get_index()
-			i.position.x = pos_x
-			if width_array.size() > i.get_index():
-				i.size.x = width_array[i.get_index()]
-			elif last_control:
-				i.size.x = last_control.size.x
-			pos_x += i.size.x + h_box_container_heads.get_theme_constant("separation")
-			last_control = i
-
-	f.call_deferred()
-	# get_tree().process_frame.connect(f, CONNECT_ONE_SHOT)
+			h_box_container_columns.get_child(col_idx + 2).add_child(editor)
 
 func get_fields() -> Array:
 	var fields = data_table.row_struct.get_script().get_script_property_list().filter(func(p):
@@ -377,6 +348,10 @@ func add_row(new_row_idx := -1):
 	else:
 		data_table.data_list.insert(new_row_idx, new_row)
 	save_data()
+	if new_row_idx == -1 || new_row_idx >= data_table.data_list.size() - 1:
+		await get_tree().create_timer(0.01).timeout
+		var scroll_container: ScrollContainer = h_box_container_columns.get_parent()
+		scroll_container.scroll_vertical = scroll_container.get_v_scroll_bar().max_value
 
 func remove_row(row_idx):
 	data_table.data_list.remove_at(row_idx)

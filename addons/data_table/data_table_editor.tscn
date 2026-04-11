@@ -42,17 +42,11 @@ size_flags_horizontal = 10
 [node name="LabelTableFile" type="Label" parent="VBoxContainerTableEditor/HBoxContainer" unique_id=66007788]
 layout_mode = 2
 
-[node name="HBoxContainerHeads" type="HBoxContainer" parent="VBoxContainerTableEditor" unique_id=1811371064]
-layout_mode = 2
-
-[node name="ControlHeads" type="Control" parent="VBoxContainerTableEditor" unique_id=1589685267]
-layout_mode = 2
-
 [node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainerTableEditor" unique_id=215381640]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VBoxContainerDataList" type="VBoxContainer" parent="VBoxContainerTableEditor/ScrollContainer" unique_id=2134974401]
+[node name="HBoxContainerColumns" type="HBoxContainer" parent="VBoxContainerTableEditor/ScrollContainer" unique_id=1297666018]
 layout_mode = 2
 size_flags_horizontal = 3
 
