@@ -14,3 +14,5 @@ var summary: String
 var position: Vector2
 
 var scale: Vector3
+
+var color: Color

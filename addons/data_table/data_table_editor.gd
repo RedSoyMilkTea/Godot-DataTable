@@ -25,7 +25,8 @@ const supported_types = {
 	Variant.Type.TYPE_FLOAT: 0.0,
 	Variant.Type.TYPE_STRING: "",
 	Variant.Type.TYPE_VECTOR2: Vector2.ZERO,
-	Variant.Type.TYPE_VECTOR3: Vector3.ZERO
+	Variant.Type.TYPE_VECTOR3: Vector3.ZERO,
+	Variant.Type.TYPE_COLOR: Color.WHITE,
 }
 
 func _ready() -> void:
@@ -39,6 +40,7 @@ func _ready() -> void:
 	button_import.pressed.connect(func():
 		file_dialog.file_mode = FileDialog.FileMode.FILE_MODE_OPEN_FILE
 		file_dialog.filters = PackedStringArray(["*.json ; JSON Files"])
+		file_dialog.set_meta("event", "import")
 		file_dialog.popup_centered()
 	)
 	
@@ -46,6 +48,7 @@ func _ready() -> void:
 	button_export.pressed.connect(func():
 		file_dialog.file_mode = FileDialog.FileMode.FILE_MODE_SAVE_FILE
 		file_dialog.filters = PackedStringArray(["*.json ; JSON Files"])
+		file_dialog.set_meta("event", "export")
 		file_dialog.current_file = data_table.resource_path.get_file().get_basename() + ".json"
 		file_dialog.popup_centered()
 	)
@@ -66,7 +69,7 @@ func _ready() -> void:
 	)
 
 	file_dialog.file_selected.connect(func(selected_path):
-		if file_dialog.file_mode == FileDialog.FileMode.FILE_MODE_OPEN_FILE:
+		if file_dialog.get_meta("event", "") == "import":
 			var fields = get_fields()
 			var imported_data = JSON.parse_string(FileAccess.get_file_as_string(selected_path))
 			for row_idx in imported_data.size():
@@ -76,10 +79,12 @@ func _ready() -> void:
 						imported_data[row_idx][col_idx] = Vector2(value.x, value.y)
 					elif fields[col_idx]["type"] == Variant.Type.TYPE_VECTOR3:
 						imported_data[row_idx][col_idx] = Vector3(value.x, value.y, value.z)
+					elif fields[col_idx]["type"] == Variant.Type.TYPE_COLOR:
+						imported_data[row_idx][col_idx] = Color(value.r, value.g, value.b, value.a)
 			data_table.data_list = imported_data
 			load_data()
 			save_data()
-		elif file_dialog.file_mode == FileDialog.FileMode.FILE_MODE_SAVE_FILE:
+		elif file_dialog.get_meta("event", "") == "export":
 			var fields = get_fields()
 			var export_data := data_table.data_list.duplicate_deep()
 			for row_idx in export_data.size():
@@ -89,6 +94,8 @@ func _ready() -> void:
 						export_data[row_idx][col_idx] = {"x": value.x, "y": value.y}
 					elif fields[col_idx]["type"] == Variant.Type.TYPE_VECTOR3:
 						export_data[row_idx][col_idx] = {"x": value.x, "y": value.y, "z": value.z}
+					elif fields[col_idx]["type"] == Variant.Type.TYPE_COLOR:
+						export_data[row_idx][col_idx] = {"r": value.r, "g": value.g, "b": value.b, "a": value.a}
 			FileAccess.open(selected_path, FileAccess.WRITE).store_string(JSON.stringify(export_data, "  "))
 	)
 
@@ -102,26 +109,13 @@ func _ready() -> void:
 	popup_menu.set_item_icon(8, get_theme_icon("ArrowDown", "EditorIcons"))
 	popup_menu.id_pressed.connect(func(id):
 		var row_idx = popup_menu.get_meta("row_idx")
-		if id == 11:
-			copy_row(row_idx)
-		elif id == 12:
-			paste_row(row_idx)
-			load_data()
-		elif id == 13:
-			remove_row(row_idx)
-			load_data()
-		elif id == 21:
-			move_row(row_idx, row_idx - 1)
-			load_data()
-		elif id == 22:
-			move_row(row_idx, row_idx + 1)
-			load_data()
-		elif id == 31:
-			add_row(row_idx)
-			load_data()
-		elif id == 32:
-			add_row(row_idx + 1)
-			load_data()
+		if id == 11: copy_row(row_idx)
+		elif id == 12: paste_row(row_idx); load_data()
+		elif id == 13: remove_row(row_idx); load_data()
+		elif id == 21: move_row(row_idx, row_idx - 1); load_data()
+		elif id == 22: move_row(row_idx, row_idx + 1); load_data()
+		elif id == 31: add_row(row_idx); load_data()
+		elif id == 32: add_row(row_idx + 1); load_data()
 	)
 
 	style_box_head = StyleBoxFlat.new()
@@ -303,6 +297,10 @@ func update_data_list():
 					editor.add_child(create_spin_box(value.x, 0.0001))
 					editor.add_child(create_spin_box(value.y, 0.0001))
 					editor.add_child(create_spin_box(value.z, 0.0001))
+				Variant.Type.TYPE_COLOR:
+					if value is not Color: value = Color.WHITE
+					editor = ColorPickerButton.new()
+					editor.color = value
 				_:
 					continue
 			
@@ -327,6 +325,12 @@ func update_data_list():
 				editor_x.value_changed.connect(func(value): update_col_value(row_idx, col_idx, Vector3(editor_x.value, editor_y.value, editor_z.value)))
 				editor_y.value_changed.connect(func(value): update_col_value(row_idx, col_idx, Vector3(editor_x.value, editor_y.value, editor_z.value)))
 				editor_z.value_changed.connect(func(value): update_col_value(row_idx, col_idx, Vector3(editor_x.value, editor_y.value, editor_z.value)))
+			elif type == Variant.Type.TYPE_COLOR:
+				var color_editor: ColorPickerButton = editor
+				color_editor.color_changed.connect(func(value):
+					var c = color_editor.color
+					update_col_value(row_idx, col_idx, Color(c.r, c.g, c.b, c.a))
+				)
 
 			h_box_container_columns.get_child(col_idx + 2).add_child(editor)
 
